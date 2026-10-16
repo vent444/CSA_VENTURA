@@ -1,0 +1,253 @@
+section .data
+clear_scr   db 27, '[2J', 27, '[H', 0
+menu        db 'Instructions: Enter the letter of the operation you want.', 10
+            db 'A for addition, S for subtraction,', 10
+            db 'M for multiplication, D for division.', 10, 10
+            db 'MENU', 10
+            db '[A]dd', 10
+            db '[S]ubtract', 10
+            db '[M]ultiply', 10
+            db '[D]ivide', 10, 10, 0
+choice_msg  db 'Enter your choice: ', 0
+first_msg   db 'Enter first number: ', 0
+hdr_add     db 10, '[ADDITION]', 10, 0
+hdr_sub     db 10, '[SUBTRACTION]', 10, 0
+hdr_mul     db 10, '[MULTIPLICATION]', 10, 0
+hdr_div     db 10, '[DIVISION]', 10, 0
+second_msg  db 'Enter second number: ', 0
+sum_msg     db 'The sum is ', 0
+diff_msg    db 'The difference is ', 0
+prod_msg    db 'The product is ', 0
+quot_msg    db 'The quotient is ', 0
+rem_msg     db ' remainder ', 0
+zero_msg    db 'Cannot divide by zero!', 0
+again_msg   db 10, 10, 'Do you want to try again (Y/N) ', 0
+bad_choice  db 'Invalid choice! Pick A, S, M or D only.', 10, 0
+bad_number  db 'Invalid number! Enter 1 or 2 digits only.', 10, 0
+bad_yn      db 'Invalid answer! Y/N (yes or no) only.', 10, 0
+minus       db '-', 0
+newline     db 10, 0
+
+section .bss
+buf     resb 16
+numbuf  resb 12
+num1    resd 1
+num2    resd 1
+op      resb 1
+
+section .text
+global _start
+
+_start:
+main_loop:
+    mov esi, clear_scr
+    call print_str
+    mov esi, menu
+    call print_str
+
+ask_choice:
+    mov esi, choice_msg
+    call print_str
+    call read_line
+    cmp eax, 0
+    je exit
+    cmp byte [buf+1], 10       
+    jne wrong_choice
+    mov al, [buf]
+    or al, 20h               
+    cmp al, 'a'
+    je good_choice
+    cmp al, 's'
+    je good_choice
+    cmp al, 'm'
+    je good_choice
+    cmp al, 'd'
+    je good_choice
+wrong_choice:
+    mov esi, bad_choice
+    call print_str
+    jmp ask_choice
+good_choice:
+    mov [op], al
+    mov esi, hdr_add
+    cmp al, 'a'
+    je show_hdr
+    mov esi, hdr_sub
+    cmp al, 's'
+    je show_hdr
+    mov esi, hdr_mul
+    cmp al, 'm'
+    je show_hdr
+    mov esi, hdr_div
+show_hdr:
+    call print_str
+
+    mov esi, first_msg
+    call read_num
+    mov [num1], eax
+
+    mov esi, second_msg
+    call read_num
+    mov [num2], eax
+
+    mov eax, [num1]
+    mov ebx, [num2]
+    cmp byte [op], 'a'
+    je do_add
+    cmp byte [op], 's'
+    je do_sub
+    cmp byte [op], 'm'
+    je do_mul
+
+do_div:
+    cmp ebx, 0
+    jne div_ok
+    mov esi, zero_msg
+    call print_str
+    jmp try_again
+div_ok:
+    xor edx, edx
+    div ebx
+    push edx                   
+    mov esi, quot_msg
+    call print_str
+    call print_num
+    mov esi, rem_msg
+    call print_str
+    pop eax
+    call print_num
+    jmp try_again
+
+do_add:
+    add eax, ebx
+    mov esi, sum_msg
+    call print_str
+    call print_num
+    jmp try_again
+
+do_sub:
+    sub eax, ebx
+    mov esi, diff_msg
+    call print_str
+    call print_num
+    jmp try_again
+
+do_mul:
+    imul eax, ebx
+    mov esi, prod_msg
+    call print_str
+    call print_num
+
+try_again:
+    mov esi, again_msg
+    call print_str
+ask_yn:
+    call read_line
+    cmp eax, 0
+    je exit
+    cmp byte [buf+1], 10
+    jne wrong_yn
+    mov al, [buf]
+    or al, 20h
+    cmp al, 'y'
+    je main_loop
+    cmp al, 'n'
+    je exit
+wrong_yn:
+    mov esi, bad_yn
+    call print_str
+    mov esi, again_msg
+    call print_str
+    jmp ask_yn
+
+exit:
+    mov esi, newline
+    call print_str
+    mov eax, 1
+    xor ebx, ebx
+    int 80h
+
+
+print_str:
+    pusha
+    xor edx, edx
+.len:
+    cmp byte [esi+edx], 0
+    je .write
+    inc edx
+    jmp .len
+.write:
+    mov ecx, esi
+    mov ebx, 1
+    mov eax, 4
+    int 80h
+    popa
+    ret
+
+read_line:
+    mov eax, 3
+    mov ebx, 0
+    mov ecx, buf
+    mov edx, 16
+    int 80h
+    ret
+
+read_num:
+    mov ebp, esi                
+.again:
+    mov esi, ebp
+    call print_str
+    call read_line
+    cmp eax, 0
+    je exit
+    mov esi, buf
+    xor eax, eax               
+    xor ecx, ecx               
+.next:
+    movzx edx, byte [esi]
+    cmp dl, 10
+    je .done
+    sub dl, '0'
+    cmp dl, 9
+    ja .bad
+    imul eax, eax, 10
+    add eax, edx
+    inc ecx
+    inc esi
+    jmp .next
+.done:
+    cmp ecx, 1
+    jb .bad
+    cmp ecx, 2
+    ja .bad
+    ret
+.bad:
+    mov esi, bad_number
+    call print_str
+    jmp .again
+
+print_num:
+    pusha
+    test eax, eax
+    jns .positive
+    push eax
+    mov esi, minus
+    call print_str
+    pop eax
+    neg eax
+.positive:
+    mov edi, numbuf + 11
+    mov byte [edi], 0
+    mov ebx, 10
+.digit:
+    xor edx, edx
+    div ebx
+    add dl, '0'
+    dec edi
+    mov [edi], dl
+    test eax, eax
+    jnz .digit
+    mov esi, edi
+    call print_str
+    popa
+    ret
