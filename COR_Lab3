@@ -1,0 +1,342 @@
+RATE    equ 1000
+MISC    equ 12000
+IDFEE   equ 80
+LAB     equ 10000
+NCOURSE equ 11
+
+%macro pz 1
+    mov esi, %1
+    call print_z
+%endmacro
+
+%macro ask 3
+    pz %1
+    mov ecx, %2
+    mov edx, %3
+    call read_line
+%endmacro
+
+section .data
+nl          db 10,0
+space       db " ",0
+
+banner      db "==========================================",10
+            db "     CERTIFICATE OF REGISTRATION (COR)",10
+            db "==========================================",10,0
+
+p_stud      db "Enter Student #   : ",0
+p_name      db "Enter Name        : ",0
+p_phone     db "Enter Phone       : ",0
+p_college   db "Enter College     : ",0
+p_program   db "Enter Program     : ",0
+p_year      db "Enter Year Level  : ",0
+p_addr      db "Enter Address     : ",0
+p_zip       db "Enter Zip Code    : ",0
+
+h_status    db "Enrollment Status : ENROLLED",10,0
+h_stud      db "Student # : ",0
+h_name      db "Name : ",0
+h_phone     db "Phone : ",0
+h_zip       db "     Zip Code : ",0
+h_class     db "Classification :",10,0
+h_college   db "College : ",0
+h_program   db "     Program : ",0
+h_year      db "Year Level : ",0
+h_term      db "     1st term, SY 26-27",10,0
+h_addr      db "Address : ",0
+
+p_enter     db 10,"Press ENTER to view schedule...",0
+
+sc_top db "=============================================================================================================================",10,0
+sc_hdr db "Courses   Title                                 Section Units Days    Time                                   Room",10,0
+sc_sep db "-----------------------------------------------------------------------------------------------------------------------------",10,0
+sc0 db "CCS0021   INFORMATION MANAGEMENT (LEC)          TN24    2     T       18:00:00-18:40:00                      ONLINE",10,0
+sc1 db "CCS0021L  INFORMATION MANAGEMENT (LAB)          TN24    1     F       16:00:00-18:50:00                      ONLINE",10,0
+sc2 db "CS0001    DISCRETE STRUCTURES 1                 TN24    3     S / W   15:00:00-16:50:00 / 15:00:00-16:50:00  F710 / F710",10,0
+sc3 db "CS0003    COMPUTER SYSTEMS & ARCHITECTURE       TN24    2     F       10:00:00-12:40:00                      ONLINE",10,0
+sc4 db "CS0003L   COMPUTER SYSTEMS & ARCHITECTURE (LAB) TN24    1     TH      10:00:00-12:50:00                      E610",10,0
+sc5 db "CS0070    OBJECT ORIENTED PROGRAMMING           TN24    2     F       07:00:00-09:40:00                      ONLINE",10,0
+sc6 db "CS0070L   OBJECT ORIENTED PROGRAMMING-LAB       TN24    1     TH      07:00:00-09:50:00                      E609",10,0
+sc7 db "GED0021   SPECIALIZED ENGLISH PROGRAM 2         TN24    3     S / W   11:00:00-12:50:00 / 11:00:00-12:50:00  F607 / F607",10,0
+sc8 db "GED0075   LINEAR ALGEBRA                        TN24    3     F / T   13:00:00-14:50:00 / 13:00:00-14:50:00  ONLINE / ONLINE",10,0
+sc9 db "GED0081   COLLEGE PHYSICS 1 LECTURE             TN24    2     T       07:00:00-09:40:00                      ONLINE",10,0
+sc10 db "GED0081L  COLLEGE PHYSICS 1 LABORATORY          TN24    1     S       07:00:00-09:50:00                      F1003",10,0
+sc_tot db "TOTAL UNITS 21",10,0
+sc_rows dd sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7, sc8, sc9, sc10
+
+t_title     db 10,"================ TUITION FEE CALCULATION ================",10,0
+t_perunit   db "Per unit is 1,000 pesos",10,10,0
+f_misc      db "Miscellaneous Fee      ",0
+f_id        db "ID Validation Fee      ",0
+f_lab       db "Laboratory Fee         ",0
+f_tuition   db "Tuition Fee            ",0
+f_total     db "TOTAL ASSESSMENT      ",0
+t_enter     db 10,"Enter number of units per courses:",10,0
+t_units     db 10,"Total Units         : ",0
+t_line      db "-------------------------------------",10,0
+
+cl0 db "  CCS0021   : ",0
+cl1 db "  CCS0021L  : ",0
+cl2 db "  CS0001    : ",0
+cl3 db "  CS0003    : ",0
+cl4 db "  CS0003L   : ",0
+cl5 db "  CS0070    : ",0
+cl6 db "  CS0070L   : ",0
+cl7 db "  GED0021   : ",0
+cl8 db "  GED0075   : ",0
+cl9 db "  GED0081   : ",0
+cl10 db "  GED0081L  : ",0
+cl_ptr dd cl0, cl1, cl2, cl3, cl4, cl5, cl6, cl7, cl8, cl9, cl10
+
+section .bss
+stud        resb 32
+fname       resb 64
+phone       resb 32
+college     resb 64
+program     resb 64
+year        resb 8
+addr        resb 128
+zip         resb 16
+unitbuf     resb 16
+tmp         resb 8
+flushb      resb 1
+numbuf      resb 32
+total_units resd 1
+tuition     resd 1
+
+section .text
+global _start
+
+_start:
+    pz banner
+
+    ask p_stud,    stud,    32
+    ask p_name,    fname,   64
+    ask p_phone,   phone,   32
+    ask p_college, college, 64
+    ask p_program, program, 64
+    ask p_year,    year,    8
+    ask p_addr,    addr,    128
+    ask p_zip,     zip,     16
+
+    pz nl
+    pz h_status
+    pz h_stud
+    pz stud
+    pz nl
+    pz h_name
+    pz fname
+    pz nl
+    pz h_phone
+    pz phone
+    pz h_zip
+    pz zip
+    pz nl
+    pz h_class
+    pz h_college
+    pz college
+    pz h_program
+    pz program
+    pz nl
+    pz h_year
+    pz year
+    pz h_term
+    pz h_addr
+    pz addr
+    pz nl
+
+    pz p_enter
+    mov ecx, tmp
+    mov edx, 8
+    call read_line
+    pz nl
+
+    pz sc_top
+    pz sc_hdr
+    pz sc_sep
+    xor ebp, ebp
+.srow:
+    cmp ebp, NCOURSE
+    jge .sdone
+    mov esi, [sc_rows + ebp*4]
+    call print_z
+    inc ebp
+    jmp .srow
+.sdone:
+    pz sc_sep
+    pz sc_tot
+    pz sc_top
+
+    pz t_title
+    pz t_perunit
+    call print_fixed
+
+    pz t_enter
+    mov dword [total_units], 0
+    xor ebp, ebp
+.uloop:
+    cmp ebp, NCOURSE
+    jge .udone
+    mov esi, [cl_ptr + ebp*4]
+    call print_z
+    mov ecx, unitbuf
+    mov edx, 16
+    call read_line
+    mov esi, unitbuf
+    call atoi
+    add [total_units], eax
+    inc ebp
+    jmp .uloop
+.udone:
+
+    pz t_units
+    mov eax, [total_units]
+    call fmt_num
+    call print_z
+    pz nl
+    pz nl
+
+    mov eax, [total_units]
+    imul eax, RATE
+    mov [tuition], eax
+
+    pz f_tuition
+    mov eax, [tuition]
+    call print_num_r
+    pz nl
+    call print_fixed
+    pz t_line
+
+    mov eax, [tuition]
+    add eax, MISC + IDFEE + LAB
+    push eax
+    pz f_total
+    pop eax
+    call print_num_r
+    pz nl
+
+    mov eax, 1
+    xor ebx, ebx
+    int 0x80
+
+print_fixed:
+    pz f_misc
+    mov eax, MISC
+    call print_num_r
+    pz nl
+    pz f_id
+    mov eax, IDFEE
+    call print_num_r
+    pz nl
+    pz f_lab
+    mov eax, LAB
+    call print_num_r
+    pz nl
+    ret
+
+print_z:
+    pusha
+    xor edx, edx
+.len:
+    cmp byte [esi+edx], 0
+    je .go
+    inc edx
+    jmp .len
+.go:
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, esi
+    int 0x80
+    popa
+    ret
+
+read_line:
+    pusha
+    dec edx
+    mov eax, 3
+    mov ebx, 0
+    int 0x80
+    test eax, eax
+    jle .empty
+    cmp byte [ecx+eax-1], 10
+    je .hasnl
+    mov byte [ecx+eax], 0
+    cmp eax, edx
+    jb .done
+.drain:
+    mov eax, 3
+    mov ebx, 0
+    mov ecx, flushb
+    mov edx, 1
+    int 0x80
+    test eax, eax
+    jle .done
+    cmp byte [flushb], 10
+    jne .drain
+    jmp .done
+.hasnl:
+    mov byte [ecx+eax-1], 0
+    jmp .done
+.empty:
+    mov byte [ecx], 0
+.done:
+    popa
+    ret
+
+atoi:
+    xor eax, eax
+.a:
+    movzx ebx, byte [esi]
+    sub ebx, '0'
+    cmp ebx, 9
+    ja .end
+    imul eax, 10
+    add eax, ebx
+    inc esi
+    jmp .a
+.end:
+    ret
+
+fmt_num:
+    mov edi, numbuf + 31
+    mov byte [edi], 0
+    mov ebx, 10
+    mov esi, 3
+.d:
+    xor edx, edx
+    div ebx
+    add dl, '0'
+    dec edi
+    mov [edi], dl
+    test eax, eax
+    jz .fin
+    dec esi
+    jnz .d
+    dec edi
+    mov byte [edi], ','
+    mov esi, 3
+    jmp .d
+.fin:
+    mov ecx, numbuf + 31
+    sub ecx, edi
+    mov esi, edi
+    ret
+
+print_num_r:
+    call fmt_num
+    mov edx, 12
+    sub edx, ecx
+.p:
+    cmp edx, 0
+    jle .q
+    push esi
+    push edx
+    mov esi, space
+    call print_z
+    pop edx
+    pop esi
+    dec edx
+    jmp .p
+.q:
+    call print_z
+    ret
